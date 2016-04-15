@@ -1,6 +1,25 @@
 package net.lightbody.bmp.filters;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.xml.bind.DatatypeConverter;
+
+import org.littleshoot.proxy.impl.ProxyUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableList;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.Cookie;
@@ -15,10 +34,11 @@ import io.netty.handler.codec.http.QueryStringDecoder;
 import net.lightbody.bmp.core.har.Har;
 import net.lightbody.bmp.core.har.HarCookie;
 import net.lightbody.bmp.core.har.HarEntry;
-import net.lightbody.bmp.core.har.HarNameValuePair;
+import net.lightbody.bmp.core.har.HarHeader;
 import net.lightbody.bmp.core.har.HarNameVersion;
 import net.lightbody.bmp.core.har.HarPostData;
 import net.lightbody.bmp.core.har.HarPostDataParam;
+import net.lightbody.bmp.core.har.HarQueryParam;
 import net.lightbody.bmp.core.har.HarRequest;
 import net.lightbody.bmp.core.har.HarResponse;
 import net.lightbody.bmp.exception.UnsupportedCharsetException;
@@ -28,22 +48,6 @@ import net.lightbody.bmp.proxy.CaptureType;
 import net.lightbody.bmp.proxy.util.BrowserMobProxyUtil;
 import net.lightbody.bmp.util.BrowserMobHttpUtil;
 import net.sf.uadetector.ReadableUserAgent;
-import org.littleshoot.proxy.impl.ProxyUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.xml.bind.DatatypeConverter;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class HarCaptureFilter extends HttpsAwareFiltersAdapter {
     private static final Logger log = LoggerFactory.getLogger(HarCaptureFilter.class);
@@ -324,7 +328,7 @@ public class HarCaptureFilter extends HttpsAwareFiltersAdapter {
         try {
             for (Map.Entry<String, List<String>> entry : queryStringDecoder.parameters().entrySet()) {
                 for (String value : entry.getValue()) {
-                    harEntry.getRequest().getQueryString().add(new HarNameValuePair(entry.getKey(), value));
+                    harEntry.getRequest().getQueryString().add(new HarQueryParam(entry.getKey(), value));
                 }
             }
         } catch (IllegalArgumentException e) {
@@ -395,7 +399,7 @@ public class HarCaptureFilter extends HttpsAwareFiltersAdapter {
 
     protected void captureHeaders(HttpHeaders headers) {
         for (Map.Entry<String, String> header : headers.entries()) {
-            harEntry.getRequest().getHeaders().add(new HarNameValuePair(header.getKey(), header.getValue()));
+            harEntry.getRequest().getHeaders().add(new HarHeader(header.getKey(), header.getValue()));
         }
     }
 
@@ -571,7 +575,7 @@ public class HarCaptureFilter extends HttpsAwareFiltersAdapter {
     protected void captureResponseHeaders(HttpResponse httpResponse) {
         HttpHeaders headers = httpResponse.headers();
         for (Map.Entry<String, String> header : headers.entries()) {
-            harEntry.getResponse().getHeaders().add(new HarNameValuePair(header.getKey(), header.getValue()));
+            harEntry.getResponse().getHeaders().add(new HarHeader(header.getKey(), header.getValue()));
         }
     }
 

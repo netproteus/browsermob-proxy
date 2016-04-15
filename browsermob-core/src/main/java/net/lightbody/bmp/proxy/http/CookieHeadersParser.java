@@ -1,13 +1,14 @@
 package net.lightbody.bmp.proxy.http;
 
-import net.lightbody.bmp.core.har.HarCookie;
-import net.lightbody.bmp.core.har.HarNameValuePair;
-import org.apache.http.Header;
-import org.apache.http.HttpRequest;
+import static com.google.common.collect.Lists.newLinkedList;
 
 import java.util.List;
 
-import static com.google.common.collect.Lists.newLinkedList;
+import org.apache.http.Header;
+import org.apache.http.HttpRequest;
+
+import net.lightbody.bmp.core.har.HarCookie;
+import net.lightbody.bmp.core.har.HarNameValuePair;
 
 /**
  * A very basic cookie parser
@@ -20,7 +21,7 @@ public class CookieHeadersParser {
         for(Header hdr : request.getHeaders("Cookie")) {
             String[] pairs = hdr.getValue().split("; ");
             for (String p : pairs) {
-                HarNameValuePair pair = nameValuePair(p);
+                CookieValue pair = nameValuePair(p);
                 HarCookie cookie = new HarCookie();
                 cookie.setName(pair.getName());
                 cookie.setValue(pair.getValue());
@@ -30,14 +31,21 @@ public class CookieHeadersParser {
         return cookies;
     }
 
-    private HarNameValuePair nameValuePair(String data) {
+    private CookieValue nameValuePair(String data) {
         int eqIdx = data.indexOf("=");
         if (eqIdx > 0) {
             String name = data.substring(0, eqIdx);
             String val = data.substring(eqIdx + 1);
-            return new HarNameValuePair(name, val);
+            return new CookieValue(name, val);
         }
-        else return new HarNameValuePair(data, "");
+        else return new CookieValue(data, "");
     }
+    
+    static class CookieValue extends HarNameValuePair {
 
+        public CookieValue(String name, String value) {
+            super(name, value);
+        }
+        
+    }
 }

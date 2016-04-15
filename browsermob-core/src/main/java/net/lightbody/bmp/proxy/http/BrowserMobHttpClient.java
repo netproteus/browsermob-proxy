@@ -1,28 +1,36 @@
 package net.lightbody.bmp.proxy.http;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import net.lightbody.bmp.client.ClientUtil;
-import net.lightbody.bmp.core.har.Har;
-import net.lightbody.bmp.core.har.HarCookie;
-import net.lightbody.bmp.core.har.HarEntry;
-import net.lightbody.bmp.core.har.HarNameValuePair;
-import net.lightbody.bmp.core.har.HarNameVersion;
-import net.lightbody.bmp.core.har.HarPostData;
-import net.lightbody.bmp.core.har.HarPostDataParam;
-import net.lightbody.bmp.core.har.HarRequest;
-import net.lightbody.bmp.core.har.HarResponse;
-import net.lightbody.bmp.proxy.BlacklistEntry;
-import net.lightbody.bmp.proxy.RewriteRule;
-import net.lightbody.bmp.proxy.Whitelist;
-import net.lightbody.bmp.proxy.dns.AdvancedHostResolver;
-import net.lightbody.bmp.proxy.jetty.util.MultiMap;
-import net.lightbody.bmp.proxy.jetty.util.UrlEncoded;
-import net.lightbody.bmp.proxy.util.BrowserMobProxyUtil;
-import net.lightbody.bmp.proxy.util.CappedByteArrayOutputStream;
-import net.lightbody.bmp.proxy.util.ClonedOutputStream;
-import net.lightbody.bmp.proxy.util.IOUtils;
-import net.sf.uadetector.ReadableUserAgent;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
+
+import javax.xml.bind.DatatypeConverter;
+
 import org.apache.http.Header;
 import org.apache.http.HeaderElement;
 import org.apache.http.HttpClientConnection;
@@ -92,35 +100,31 @@ import org.java_bandwidthlimiter.StreamManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.bind.DatatypeConverter;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.Inflater;
-import java.util.zip.InflaterInputStream;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
+import net.lightbody.bmp.client.ClientUtil;
+import net.lightbody.bmp.core.har.Har;
+import net.lightbody.bmp.core.har.HarCookie;
+import net.lightbody.bmp.core.har.HarEntry;
+import net.lightbody.bmp.core.har.HarHeader;
+import net.lightbody.bmp.core.har.HarNameVersion;
+import net.lightbody.bmp.core.har.HarPostData;
+import net.lightbody.bmp.core.har.HarPostDataParam;
+import net.lightbody.bmp.core.har.HarQueryParam;
+import net.lightbody.bmp.core.har.HarRequest;
+import net.lightbody.bmp.core.har.HarResponse;
+import net.lightbody.bmp.proxy.BlacklistEntry;
+import net.lightbody.bmp.proxy.RewriteRule;
+import net.lightbody.bmp.proxy.Whitelist;
+import net.lightbody.bmp.proxy.dns.AdvancedHostResolver;
+import net.lightbody.bmp.proxy.jetty.util.MultiMap;
+import net.lightbody.bmp.proxy.jetty.util.UrlEncoded;
+import net.lightbody.bmp.proxy.util.BrowserMobProxyUtil;
+import net.lightbody.bmp.proxy.util.CappedByteArrayOutputStream;
+import net.lightbody.bmp.proxy.util.ClonedOutputStream;
+import net.lightbody.bmp.proxy.util.IOUtils;
+import net.sf.uadetector.ReadableUserAgent;
 
 /**
  * WARN : Require zlib > 1.1.4 (deflate support)
@@ -740,7 +744,7 @@ public class BrowserMobHttpClient {
 	        UrlEncoded.decodeTo(query, params, "UTF-8");
 	        for (Object k : params.keySet()) {
 	        	for (Object v : params.getValues(k)) {
-	        		entry.getRequest().getQueryString().add(new HarNameValuePair((String) k, (String) v));
+	        		entry.getRequest().getQueryString().add(new HarQueryParam((String) k, (String) v));
 	        	}
 	        }
         }
@@ -914,12 +918,12 @@ public class BrowserMobHttpClient {
                     urlEncoded = true;
                 }
 
-                entry.getRequest().getHeaders().add(new HarNameValuePair(header.getName(), header.getValue()));
+                entry.getRequest().getHeaders().add(new HarHeader(header.getName(), header.getValue()));
             }
 
             if (response != null) {
                 for (Header header : response.getAllHeaders()) {
-                    entry.getResponse().getHeaders().add(new HarNameValuePair(header.getName(), header.getValue()));
+                    entry.getResponse().getHeaders().add(new HarHeader(header.getName(), header.getValue()));
                 }
             }
         }

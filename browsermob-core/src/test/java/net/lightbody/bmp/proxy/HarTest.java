@@ -1,27 +1,15 @@
 package net.lightbody.bmp.proxy;
 
-import net.lightbody.bmp.core.har.Har;
-import net.lightbody.bmp.core.har.HarContent;
-import net.lightbody.bmp.core.har.HarEntry;
-import net.lightbody.bmp.core.har.HarLog;
-import net.lightbody.bmp.core.har.HarNameValuePair;
-import net.lightbody.bmp.core.har.HarNameVersion;
-import net.lightbody.bmp.core.har.HarPage;
-import net.lightbody.bmp.core.har.HarPageTimings;
-import net.lightbody.bmp.core.har.HarPostData;
-import net.lightbody.bmp.core.har.HarRequest;
-import net.lightbody.bmp.core.har.HarResponse;
-import net.lightbody.bmp.core.har.HarTimings;
-import net.lightbody.bmp.proxy.test.util.LocalServerTest;
-import net.lightbody.bmp.proxy.util.IOUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
-import org.junit.Test;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -33,16 +21,29 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.junit.Test;
+
+import net.lightbody.bmp.core.har.Har;
+import net.lightbody.bmp.core.har.HarContent;
+import net.lightbody.bmp.core.har.HarEntry;
+import net.lightbody.bmp.core.har.HarLog;
+import net.lightbody.bmp.core.har.HarNameVersion;
+import net.lightbody.bmp.core.har.HarPage;
+import net.lightbody.bmp.core.har.HarPageTimings;
+import net.lightbody.bmp.core.har.HarPostData;
+import net.lightbody.bmp.core.har.HarQueryParam;
+import net.lightbody.bmp.core.har.HarRequest;
+import net.lightbody.bmp.core.har.HarResponse;
+import net.lightbody.bmp.core.har.HarTimings;
+import net.lightbody.bmp.proxy.test.util.LocalServerTest;
+import net.lightbody.bmp.proxy.util.IOUtils;
 
 public class HarTest extends LocalServerTest {
     @Test
@@ -257,7 +258,7 @@ public class HarTest extends LocalServerTest {
 		// returns a List, the order should match the query string itself, but this is not technically required.
 		boolean sawFoo = false;
 		boolean sawA = false;
-		for (HarNameValuePair queryStringParam : req.getQueryString()) {
+		for (HarQueryParam queryStringParam : req.getQueryString()) {
 			if (queryStringParam.getName().equals("foo")) {
 				assertEquals("expected 'foo' query param's value to be 'bar'", "bar", queryStringParam.getValue());
 				sawFoo = true;

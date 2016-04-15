@@ -11,8 +11,8 @@ public class HarRequest {
     private volatile String url;
     private volatile String httpVersion;
     private final List<HarCookie> cookies = new CopyOnWriteArrayList<HarCookie>();
-    private final List<HarNameValuePair> headers = new CopyOnWriteArrayList<HarNameValuePair>();
-    private final List<HarNameValuePair> queryString = new CopyOnWriteArrayList<HarNameValuePair>();
+    private final List<HarHeader> headers = new CopyOnWriteArrayList<HarHeader>();
+    private final List<HarQueryParam> queryString = new CopyOnWriteArrayList<HarQueryParam>();
     private volatile HarPostData postData;
     private volatile long headersSize; // Odd grammar in spec
     private volatile long bodySize;
@@ -55,11 +55,11 @@ public class HarRequest {
         return cookies;
     }
 
-    public List<HarNameValuePair> getHeaders() {
+    public List<HarHeader> getHeaders() {
         return headers;
     }
 
-    public List<HarNameValuePair> getQueryString() {
+    public List<HarQueryParam> getQueryString() {
         return queryString;
     }
 

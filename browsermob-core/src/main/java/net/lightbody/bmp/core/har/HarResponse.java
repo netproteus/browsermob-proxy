@@ -12,7 +12,7 @@ public class HarResponse {
     private volatile String statusText;
     private volatile String httpVersion;
     private final List<HarCookie> cookies = new CopyOnWriteArrayList<HarCookie>();
-    private final List<HarNameValuePair> headers = new CopyOnWriteArrayList<HarNameValuePair>();
+    private final List<HarHeader> headers = new CopyOnWriteArrayList<HarHeader>();
     private final HarContent content = new HarContent();
     private volatile String redirectURL = "";
 
@@ -67,7 +67,7 @@ public class HarResponse {
         return cookies;
     }
 
-    public List<HarNameValuePair> getHeaders() {
+    public List<HarHeader> getHeaders() {
         return headers;
     }
 

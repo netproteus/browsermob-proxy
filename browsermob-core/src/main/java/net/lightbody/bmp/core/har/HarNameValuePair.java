@@ -1,6 +1,6 @@
 package net.lightbody.bmp.core.har;
 
-public final class HarNameValuePair {
+public abstract class HarNameValuePair {
     private final String name;
     private final String value;
 
