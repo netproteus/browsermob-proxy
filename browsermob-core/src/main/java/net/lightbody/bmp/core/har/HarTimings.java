@@ -2,6 +2,8 @@ package net.lightbody.bmp.core.har;
 
 import java.util.concurrent.TimeUnit;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class HarTimings {
     // optional values are initialized to -1, which indicates they do not apply to the current request, according to the HAR spec
     private volatile long blockedNanos = -1;
@@ -173,5 +175,5 @@ public class HarTimings {
     public void setSsl(long ssl) {
         setSsl(ssl, TimeUnit.MILLISECONDS);
     }
-
+    
 }

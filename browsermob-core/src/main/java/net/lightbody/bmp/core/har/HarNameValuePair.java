@@ -1,9 +1,12 @@
 package net.lightbody.bmp.core.har;
 
 public abstract class HarNameValuePair {
-    private final String name;
-    private final String value;
+    private String name;
+    private String value;
 
+    public HarNameValuePair() {
+    }    
+    
     public HarNameValuePair(String name, String value) {
         this.name = name;
         this.value = value;
@@ -39,5 +42,13 @@ public abstract class HarNameValuePair {
         int result = name != null ? name.hashCode() : 0;
         result = 31 * result + (value != null ? value.hashCode() : 0);
         return result;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
     }
 }

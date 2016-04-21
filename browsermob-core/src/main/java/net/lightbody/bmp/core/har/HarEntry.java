@@ -63,6 +63,10 @@ public class HarEntry {
         return getTime(TimeUnit.MILLISECONDS);
     }
 
+    public void setTime(long time) {
+        // ignored, comes from timings
+    }
+    
     /**
      * Retrieve the time for this HarEntry in the specified timeUnit. See {@link #getTime()} for details.
      *
@@ -100,7 +104,7 @@ public class HarEntry {
             timeNanos += timings.getReceive(TimeUnit.NANOSECONDS);
         }
 
-        return timeUnit.convert(timeNanos, TimeUnit.NANOSECONDS);
+        return timeUnit.convert(timeNanos, TimeUnit.NANOSECONDS);    
     }
 
     public HarRequest getRequest() {
