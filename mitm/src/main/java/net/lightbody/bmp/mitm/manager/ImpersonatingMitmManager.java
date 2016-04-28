@@ -1,10 +1,33 @@
 package net.lightbody.bmp.mitm.manager;
 
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSession;
+
+import org.littleshoot.proxy.MitmManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
+
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -26,23 +49,6 @@ import net.lightbody.bmp.mitm.tools.SecurityProviderTool;
 import net.lightbody.bmp.mitm.util.EncryptionUtil;
 import net.lightbody.bmp.mitm.util.MitmConstants;
 import net.lightbody.bmp.mitm.util.SslUtil;
-import org.littleshoot.proxy.MitmManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSession;
-import java.security.KeyPair;
-import java.security.PrivateKey;
-import java.security.cert.X509Certificate;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 /**
  * An {@link MitmManager} that will create SSLEngines for clients that present impersonated certificates for upstream servers. The impersonated
@@ -284,7 +290,12 @@ public class ImpersonatingMitmManager implements MitmManager {
                 serverKeyPair,
                 serverCertificateMessageDigest);
 
-        X509Certificate[] certChain = {impersonatedCertificateAndKey.getCertificate(), caRootCertificate};
+        X509Certificate[] upstreamChain = rootCertificate.get().getCertificateChain();
+        X509Certificate[] certChain = new X509Certificate[upstreamChain.length + 2];
+        certChain[0] = impersonatedCertificateAndKey.getCertificate();
+        certChain[1] = caRootCertificate;
+        System.arraycopy(upstreamChain, 0, certChain, 2, upstreamChain.length);
+                
         SslContext sslContext;
         try {
             sslContext = SslContextBuilder.forServer(impersonatedCertificateAndKey.getPrivateKey(), certChain)

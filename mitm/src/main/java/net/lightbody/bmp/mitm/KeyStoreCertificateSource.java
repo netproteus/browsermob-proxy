@@ -7,7 +7,10 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.UnrecoverableEntryException;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A {@link CertificateAndKeySource} that loads the root certificate and private key from a Java KeyStore. The
@@ -68,7 +71,18 @@ public class KeyStoreCertificateSource implements CertificateAndKeySource {
 
             X509Certificate x509Certificate = (X509Certificate) privateKeyEntry.getCertificate();
 
-            return new CertificateAndKey(x509Certificate, privateKey);
+            Certificate[] bareCertChain = keyStore.getCertificateChain(keyStore.getCertificateAlias(x509Certificate));
+            List<X509Certificate> certChainList = new ArrayList<>();
+            if (bareCertChain != null) {
+                for (Certificate cert : bareCertChain) {
+                    if (cert instanceof X509Certificate && !cert.equals(x509Certificate)) {
+                        certChainList.add((X509Certificate)cert);
+                    }
+                }
+            }
+            X509Certificate[] certChain = certChainList.toArray(new X509Certificate[certChainList.size()]);
+            
+            return new CertificateAndKey(x509Certificate, privateKey, certChain);
         } catch (KeyStoreException | NoSuchAlgorithmException e) {
             throw new CertificateSourceException("Error accessing keyStore", e);
         }
