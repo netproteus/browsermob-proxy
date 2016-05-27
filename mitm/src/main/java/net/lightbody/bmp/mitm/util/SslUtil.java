@@ -16,6 +16,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManagerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -72,18 +74,20 @@ public class SslUtil {
      * server</b>, so use trustAllServers only when testing.
      *
      * @param trustAllServers when true, no upstream server certificate validation will be performed
+     * @param trustManagerFactory, used as trustmanager for upstream connections, ignored if trustAllServers is true
      * @param cipherSuites    cipher suites to allow when connecting to the upstream server
      * @return an SSLContext to connect to upstream servers with
      */
-    public static SslContext getUpstreamServerSslContext(boolean trustAllServers, Collection<String> cipherSuites) {
-        //TODO: add the ability to specify an explicit additional trust source, so clients don't need to import trust into the JDK trust source or forgo trust entirely
-
+    public static SslContext getUpstreamServerSslContext(boolean trustAllServers, TrustManagerFactory trustManagerFactory, Collection<String> cipherSuites) {
         SslContextBuilder sslContextBuilder = SslContextBuilder.forClient();
 
         if (trustAllServers) {
             log.warn("Disabling upstream server certificate verification. This will allow attackers to intercept communications with upstream servers.");
 
             sslContextBuilder.trustManager(InsecureTrustManagerFactory.INSTANCE);
+        }
+        else if (trustManagerFactory != null) {
+            sslContextBuilder.trustManager(trustManagerFactory);
         }
 
         sslContextBuilder.ciphers(cipherSuites, SupportedCipherSuiteFilter.INSTANCE);
@@ -94,6 +98,7 @@ public class SslUtil {
             throw new SslContextInitializationException("Error creating new SSL context for connection to upstream server", e);
         }
     }
+    
 
     /**
      * Returns the X509Certificate for the server this session is connected to. The certificate may be null.

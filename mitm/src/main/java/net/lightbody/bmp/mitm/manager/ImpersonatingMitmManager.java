@@ -2,10 +2,7 @@ package net.lightbody.bmp.mitm.manager;
 
 import java.security.KeyPair;
 import java.security.PrivateKey;
-import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -17,6 +14,7 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.littleshoot.proxy.MitmManager;
 import org.slf4j.Logger;
@@ -74,7 +72,7 @@ public class ImpersonatingMitmManager implements MitmManager {
     private final Supplier<SslContext> upstreamServerSslContext = Suppliers.memoize(new Supplier<SslContext>() {
         @Override
         public SslContext get() {
-            return SslUtil.getUpstreamServerSslContext(trustAllUpstreamServers, serverCipherSuites);
+            return SslUtil.getUpstreamServerSslContext(trustAllUpstreamServers, trustManagerFactory, serverCipherSuites);    
         }
     });
 
@@ -133,6 +131,11 @@ public class ImpersonatingMitmManager implements MitmManager {
     private final CertificateGenerationStatistics statistics = new CertificateGenerationStatistics();
 
     /**
+     * TrustManagerFactory to be used for upstream certificate verification
+     */
+    private TrustManagerFactory trustManagerFactory;
+
+    /**
      * Creates a new ImpersonatingMitmManager. In general, use {@link ImpersonatingMitmManager.Builder}
      * to construct new instances.
      */
@@ -140,12 +143,14 @@ public class ImpersonatingMitmManager implements MitmManager {
                                     KeyGenerator serverKeyGenerator,
                                     String serverMessageDigest,
                                     boolean trustAllUpstreamServers,
+                                    TrustManagerFactory trustManagerFactory,
                                     int sslContextCacheConcurrencyLevel,
                                     long cacheExpirationIntervalMs,
                                     SecurityProviderTool securityProviderTool,
                                     CertificateInfoGenerator certificateInfoGenerator,
                                     Collection<String> serverCipherSuites,
                                     Collection<String> clientCipherSuites) {
+        
         if (rootCertificateSource == null) {
             throw new IllegalArgumentException("CA root certificate source cannot be null");
         }
@@ -169,6 +174,7 @@ public class ImpersonatingMitmManager implements MitmManager {
         this.rootCertificateSource = rootCertificateSource;
 
         this.trustAllUpstreamServers = trustAllUpstreamServers;
+        this.trustManagerFactory = trustManagerFactory;
 
         this.serverCertificateMessageDigest = serverMessageDigest;
 
@@ -365,6 +371,8 @@ public class ImpersonatingMitmManager implements MitmManager {
 
         private Collection<String> clientCiphers;
 
+        private TrustManagerFactory trustManagerFactory;
+
         /**
          * The source of the CA root certificate that will be used to sign the impersonated server certificates. Custom
          * certificates can be used by supplying an implementation of {@link CertificateAndKeySource}, such as
@@ -395,6 +403,11 @@ public class ImpersonatingMitmManager implements MitmManager {
             return this;
         }
 
+        public Builder withTrustManagerFactory(TrustManagerFactory trustManagerFactory) {
+            this.trustManagerFactory = trustManagerFactory;
+            return this;
+        }
+        
         /**
          * The {@link KeyGenerator} that will be used to generate the server public and private keys.
          */
@@ -470,6 +483,7 @@ public class ImpersonatingMitmManager implements MitmManager {
                     serverKeyGenerator,
                     serverMessageDigest,
                     trustAllServers,
+                    trustManagerFactory,
                     cacheConcurrencyLevel,
                     cacheExpirationIntervalMs,
                     securityProviderTool,
