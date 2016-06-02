@@ -1,5 +1,6 @@
 package net.lightbody.bmp.mitm.manager;
 
+import java.io.File;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
@@ -72,7 +73,7 @@ public class ImpersonatingMitmManager implements MitmManager {
     private final Supplier<SslContext> upstreamServerSslContext = Suppliers.memoize(new Supplier<SslContext>() {
         @Override
         public SslContext get() {
-            return SslUtil.getUpstreamServerSslContext(trustAllUpstreamServers, trustManagerFactory, serverCipherSuites);    
+            return SslUtil.getUpstreamServerSslContext(trustAllUpstreamServers, trustManagerFactory, trustCertChain, serverCipherSuites);    
         }
     });
 
@@ -134,6 +135,11 @@ public class ImpersonatingMitmManager implements MitmManager {
      * TrustManagerFactory to be used for upstream certificate verification
      */
     private TrustManagerFactory trustManagerFactory;
+    
+    /**
+     * Trust Store
+     */
+    private File trustCertChain;
 
     /**
      * Creates a new ImpersonatingMitmManager. In general, use {@link ImpersonatingMitmManager.Builder}
@@ -144,6 +150,7 @@ public class ImpersonatingMitmManager implements MitmManager {
                                     String serverMessageDigest,
                                     boolean trustAllUpstreamServers,
                                     TrustManagerFactory trustManagerFactory,
+                                    File trustCertChain,
                                     int sslContextCacheConcurrencyLevel,
                                     long cacheExpirationIntervalMs,
                                     SecurityProviderTool securityProviderTool,
@@ -175,6 +182,7 @@ public class ImpersonatingMitmManager implements MitmManager {
 
         this.trustAllUpstreamServers = trustAllUpstreamServers;
         this.trustManagerFactory = trustManagerFactory;
+        this.trustCertChain = trustCertChain;
 
         this.serverCertificateMessageDigest = serverMessageDigest;
 
@@ -372,6 +380,8 @@ public class ImpersonatingMitmManager implements MitmManager {
         private Collection<String> clientCiphers;
 
         private TrustManagerFactory trustManagerFactory;
+        
+        private File trustCertChain;
 
         /**
          * The source of the CA root certificate that will be used to sign the impersonated server certificates. Custom
@@ -407,6 +417,11 @@ public class ImpersonatingMitmManager implements MitmManager {
             this.trustManagerFactory = trustManagerFactory;
             return this;
         }
+
+        public Builder withTrustCertChain(File trustCertChain) {
+            this.trustCertChain = trustCertChain;
+            return this;
+        }        
         
         /**
          * The {@link KeyGenerator} that will be used to generate the server public and private keys.
@@ -484,6 +499,7 @@ public class ImpersonatingMitmManager implements MitmManager {
                     serverMessageDigest,
                     trustAllServers,
                     trustManagerFactory,
+                    trustCertChain,
                     cacheConcurrencyLevel,
                     cacheExpirationIntervalMs,
                     securityProviderTool,
